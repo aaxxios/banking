@@ -60,25 +60,25 @@ def hibernate_user(number, sec):
     conn = sqlite3.connect(DB)
     query = '''
     UPDATE banking SET hibernated = ?
-    WHERE number = {}
-    '''.format(number)
-    execute(conn, query, [sec], False)
+    WHERE number = ?
+    '''
+    execute(conn, query, [sec, number], False)
 
 
 def update_balance(number, amount, key=1):
     conn = sqlite3.connect(DB)
     query = '''
-    UPDATE banking set balance = balance - ?
-    WHERE number = {}
-    '''.format(number)
-    query2 = '''
     UPDATE banking set balance = balance + ?
-    WHERE number = {}
-    '''.format(number)
+    WHERE number = ?
+    '''
+    query2 = '''
+    UPDATE banking set balance = balance - ?
+    WHERE number = ?
+    '''
     if key == 1:
-        execute(conn, query, [amount], False)
+        execute(conn, query, [amount, number], False)
     else:
-        execute(conn, query2, [amount], False)
+        execute(conn, query2, [amount, number], False)
 
 
 def get_users():
@@ -98,23 +98,31 @@ def get_user_by_number(number):
 
         SELECT number, name, pin, balance, hibernated
         FROM banking
-        WHERE number = {}
-    ''' .format(number)
-    return execute(conn, query)
+        WHERE number = ?
+    ''' 
+    return execute(conn, query, params=[number])
 
 
 def transfer(sender, recipient, amount):
     conn = sqlite3.connect(DB)
     query = '''
-    BEGIN;
-    UPDATE banking SET balance = balance - {amount}
-    WHERE number = {sender};
-    UPDATE banking SET balance = balance + {amount}
-    WHERE number = {rec};
-    COMMIT
+    UPDATE banking SET balance = balance - ?
+    WHERE number = ?'''
+    
+    query2 = '''UPDATE banking SET balance = balance + ?
+    WHERE number = ?;
     '''
     cur = conn.cursor()
-    cur.execute(query)
+    cur.execute(query, [amount, sender])
+    conn.commit()
+    conn.close()
+    
+    conn2 = sqlite3.connect(DB)
+    cur2 = conn2.cursor()
+    cur2.execute(query2, [amount, recipient])
+    conn2.commit()
+    conn2.close()
+    
 
 
 def update_user_details(number, name, phone):
@@ -132,10 +140,8 @@ def delete_banking(number):
     conn = sqlite3.connect(DB)
 
     query = '''
-
         DELETE
         FROM banking
-        WHERE number = {}
-    with conn.cursor() as cur:
-    ''' .format(number)
-    execute(conn, query, output=False)
+        WHERE number = ?
+    '''
+    execute(conn, query,[number], output=False)

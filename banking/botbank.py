@@ -54,7 +54,7 @@ class Bank:
             if validate is None:
                 print("Name cannot contain number\n")
                 name = self._getname()
-        return name.title()
+        return name
 
     def _verify(self, pin, name):
         for _ in range(3):
@@ -71,8 +71,8 @@ class Bank:
         crudOps.hibernate_user(act_num, sec)
 
     def _isHibernated(self, wait):
-        if wait > dt.datetime.now():
-            return f"Account hibernated for {wait - dt.datetime.now()}"
+        if wait > time.time():
+            return f"Account hibernated until {time.ctime(wait)}"
         return False
 
     def _userInfo(self, act_num):
@@ -116,7 +116,7 @@ class Bank:
         utils.refresh()
         print("Your account has been created\n=====DETAILS=====\n")
         utils.info(
-            f"Name: {name}\nAccount Number: {act_num}\nPassword:\
+            f"Name: {name.title()}\nAccount Number: {act_num}\nPassword:\
             {dispPin}\nLogin to access your account\n")
         copy = input('Copy accout number to clipboard? y/n: ')
         copy = copy.lower()
@@ -131,10 +131,11 @@ class Bank:
             return 0
         msg = "Enter your account number: "
         act_num = input(msg)
-        user = crudOps.get_user_by_number(act_num)[0]
+        user = crudOps.get_user_by_number(act_num)
         while not user:
             print(f"{act_num} is not registered with BotBank")
             act_num = input(msg)
+        user = user[0]
         wait = user[-1]
         b = self._isHibernated(wait)
         if b:
@@ -143,8 +144,8 @@ class Bank:
             self._log()
             self.act_num = user[0]
             self.name = user[1]
-            self.balance[3]
-            utils.info(f"Welcome back {user[0]}, You are now logged in\n")
+            self.balance = user[3]
+            utils.info(f"Welcome back {user[1]}, You are now logged in\n")
         else:
             self._hibernate(act_num)
             utils.warn("Maximum password attempts exceeded and\
@@ -162,7 +163,7 @@ class Bank:
             raise InvalidAmount(amount) from None
         else:
             if amount > 0:
-                crudOps.update_balance(self.act_num)
+                crudOps.update_balance(self.act_num, amount)
                 utils.info(f"${amount} has been credited to your account and\
                     new balance is {self.balance + amount}\n")
             else:
@@ -178,6 +179,7 @@ class Bank:
         except TypeError:
             raise InvalidAmount(amount) from None
         else:
+            print("balance",self.balance)
             if amount <= self.balance:
                 msg = "Enter recepient account number: \n"
                 account = input(msg)
